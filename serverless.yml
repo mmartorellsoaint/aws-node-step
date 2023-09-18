@@ -1,0 +1,98 @@
+service: aws-node-step
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+
+plugins:
+  - serverless-step-functions-local
+  - serverless-step-functions
+  - serverless-offline-lambda
+  - serverless-offline
+
+custom:
+  serverless-offline:
+  stepFunctionsLocal:
+    accountId: 101010101010
+    region: us-east-1
+    TaskResourceMapping:
+      HelloState: arn:aws:lambda:us-east-1:101010101010:function:hello
+      WorldState: arn:aws:lambda:us-east-1:101010101010:function:world
+      OtherState: arn:aws:lambda:us-east-1:101010101010:function:other
+      FillState: arn:aws:lambda:us-east-1:101010101010:function:fill
+
+functions:
+  hello:
+    handler: index.hello
+    events:
+      - http:
+          path: hello
+          method: GET
+  world:
+    handler: index.world
+    events:
+      - http:
+          path: world
+          method: GET
+  other:
+    handler: index.other
+    events:
+      - http:
+          path: other
+          method: GET
+  fill:
+    handler: index.fill
+    events:
+      - http:
+          path: fill
+          method: GET
+  startSF:
+    handler: index.startSF
+    events:
+      - http:
+          path: start
+          method: GET
+
+stepFunctions:
+  stateMachines:
+    DemoStateMachine:
+      definition:
+        Comment: "An example of the Amazon States Language using wait states"
+        StartAt: WaitUsingSeconds
+        States:
+          WaitUsingSeconds:
+            Type: Wait
+            Seconds: 3
+            Next: OtherState
+          OtherState:
+            Type: Task
+            Resource: 
+              Fn::GetAtt: [other, Arn]
+            Next: ParallelState
+          ParallelState:
+            Type: Parallel
+            ResultPath: "$.result"
+            Branches:
+              - StartAt: HelloState
+                States:
+                  HelloState:
+                    Type: Task
+                    Resource: 
+                      Fn::GetAtt: [hello, Arn]
+                    End: true
+              - StartAt: WorldState
+                States:
+                  WorldState:
+                    Type: Task
+                    Resource: 
+                      Fn::GetAtt: [world, Arn]
+                    End: true
+            Next: FillState
+          FillState:
+            Type: Task
+            Resource: 
+              Fn::GetAtt: [fill, Arn]
+            Next: EstadoDeExito
+          EstadoDeExito:
+            Type: Succeed
