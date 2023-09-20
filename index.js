@@ -38,11 +38,6 @@ module.exports.world = async event => {
   return { message: 'Final thing!!!', event };
 };
 
-module.exports.other = async event => {
-  console.log('other');
-  return { message: 'other', event };
-};
-
 module.exports.fill = async event => {
   console.log('fill');
   return { message: 'fill', event };
